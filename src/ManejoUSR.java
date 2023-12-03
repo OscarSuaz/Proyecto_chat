@@ -1,73 +1,32 @@
+
 import java.io.*;
+import java.util.*;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class ManejoUSR  implements Runnable{
-    public static ArrayList<ManejoUSR>manejadores = new ArrayList<>();
-    public Socket socket;
-    private BufferedReader br;
-    private BufferedWriter bw;
-    private String id;
+class ManejoUSR implements Runnable {
 
-    public ManejoUSR(Socket socket){
-        try {
-            this.socket=socket;
-            this.br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            this.id = br.readLine();
-            manejadores.add(this);
-            mensajeTodos(id+" a entrado al servidor");
-        } catch (Exception e) {
-            cierraTodo(socket,br,bw);
-        }
+    private Servidor server;
+    private Client user;
+
+    public ManejoUSR(Servidor server, Client user) {
+        this.server = server;
+        this.user = user;
+        this.server.broadcastAllUsers();
     }
 
-    @Override
     public void run() {
-        String mensaje;
-        while (socket.isConnected()) {
-            try {
-                mensaje=br.readLine();
-                mensajeTodos(mensaje);
-            } catch (Exception e) {
-                cierraTodo(socket,br,bw);
-            }
-        }
-    }
-    public void mensajeTodos(String contenido){
-        for (ManejoUSR usuario : manejadores) {
-            try {
-                if (!usuario.id.equals(id)) {
-                    usuario.bw.write(contenido);
-                    usuario.bw.newLine();
-                    usuario.bw.flush();
-                }
-            } catch (Exception e) {
-                cierraTodo(socket, br, bw);
-            }
-        }
-    }
+        String message;
 
-    public void salirChat(){
-        manejadores.remove(this);
-        mensajeTodos(id+" a salido");
-    }
-
-    public void cierraTodo(Socket socket, BufferedReader br, BufferedWriter bw){
-        salirChat();
-        try {
-            if (br != null) {
-                br.close();
-            }
-            if (bw != null) {
-                bw.close();
-            }
-            if (socket != null) {
-                socket.close();
-            }
-        } catch (Exception e) {
-            System.out.println("Algo salió mal");
-            e.printStackTrace();
+        // Muestra nuevos mensajes a todos
+        Scanner sc = new Scanner(this.user.getInputStream());
+        while (sc.hasNextLine()) {
+        message = sc.nextLine();
+        server.broadcastMessages(message, user);
         }
+        // Al matar el hilo
+        server.removeUser(user);
+        this.server.broadcastAllUsers();
+        sc.close();
     }
 }
