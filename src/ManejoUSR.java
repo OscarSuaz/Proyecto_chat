@@ -1,8 +1,5 @@
 
-import java.io.*;
 import java.util.*;
-import java.net.Socket;
-import java.util.ArrayList;
 
 class ManejoUSR implements Runnable {
 
